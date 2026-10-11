@@ -48,6 +48,7 @@ type options struct {
 	order   string
 	token   string
 	api     string
+	out     string
 	pretty  bool
 }
 
@@ -119,8 +120,11 @@ func run(args []string, out, errOut io.Writer, getenv func(string) string) error
 	if err != nil {
 		return err
 	}
-	_, err = out.Write(data)
-	return err
+	if opts.out == "" || opts.out == "-" {
+		_, err = out.Write(data)
+		return err
+	}
+	return writeFileAtomically(opts.out, data)
 }
 
 func parseFlags(args []string) (options, error) {
@@ -140,6 +144,7 @@ func parseFlags(args []string) (options, error) {
 	fs.StringVar(&opts.order, "order", "desc", "sort `direction`: desc or asc")
 	fs.StringVar(&opts.token, "token", "", "GitHub access `token` (defaults to $GITHUB_TOKEN / $GH_TOKEN)")
 	fs.StringVar(&opts.api, "api", "", "base `URL` of the GitHub REST API (default: derived from -host)")
+	fs.StringVar(&opts.out, "out", "", "write the feed to this `file` instead of stdout (\"-\" for stdout); an existing file is replaced atomically")
 	fs.BoolVar(&opts.pretty, "pretty", false, "indent the output XML")
 	showVersion := fs.Bool("version", false, "print version and exit")
 	fs.Usage = func() {
@@ -170,15 +175,16 @@ Examples:
   # Homebrew: recently merged PRs that added a new cask
   ` + progName + ` -repo Homebrew/homebrew-cask -state merged -label "new cask"
 
-  # Homebrew: recently merged PRs that added a new formula
-  ` + progName + ` -repo Homebrew/homebrew-core -state merged -label "new formula"
+  # Homebrew: recently merged PRs that added a new formula, written to a file
+  ` + progName + ` -repo Homebrew/homebrew-core -state merged -label "new formula" -out homebrew-core.rss
 
   # golang/go: open PRs for a milestone by one author
   ` + progName + ` -repo golang/go -milestone Go1.27 -author matsuu
 
-The feed is written to stdout; redirect it to a file to publish. Without a
-token, the search API allows only 10 requests per minute — set GITHUB_TOKEN
-(or GH_TOKEN) in the environment for a higher rate limit.
+The feed is written to stdout, or to the file given by -out (an existing
+file is replaced atomically). Without a token, the search API allows only
+10 requests per minute — set GITHUB_TOKEN (or GH_TOKEN) in the environment
+for a higher rate limit.
 
 Flags:
 `

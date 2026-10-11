@@ -7,10 +7,12 @@ A command-line tool that generates an RSS 2.0 feed from a GitHub pull request li
 ```console
 $ go build .
 $ ./github-pr-rss -repo Homebrew/homebrew-cask -state merged -label 'new cask' > homebrew-cask.rss
-$ ./github-pr-rss -repo Homebrew/homebrew-core -state merged -label 'new formula' > homebrew-core.rss
+$ ./github-pr-rss -repo Homebrew/homebrew-core -state merged -label 'new formula' -out homebrew-core.rss
 ```
 
-The generated feed is written to stdout; redirect it to a file to publish.
+By default the generated feed is written to stdout; redirect it to a file, or use `-out` to write it directly.
+
+When `-out` targets an existing file, the feed is written to a temporary file in the same directory and then swapped in atomically, so concurrent readers never see a partially written file. Permissions of an existing file are preserved; new files are created with mode 0644.
 
 ### Flags
 
@@ -30,6 +32,7 @@ The generated feed is written to stdout; redirect it to a file to publish.
 | `-order <dir>` | Sort direction: `desc` or `asc` (default: `desc`) |
 | `-token <token>` | GitHub access token (default: `$GITHUB_TOKEN` / `$GH_TOKEN`) |
 | `-api <url>` | Base URL of the GitHub REST API (default: derived from `-host`) |
+| `-out <file>` | Write the feed to this file instead of stdout (`-` for stdout). An existing file is replaced atomically |
 | `-pretty` | Indent the output XML |
 | `-version` | Print the version |
 
@@ -60,7 +63,7 @@ $ ./github-pr-rss -repo Homebrew/homebrew-cask -state merged -label 'new cask' >
 Example cron entry that regenerates the feed hourly:
 
 ```cron
-0 * * * * cd /path/to/github-pr-rss && ./github-pr-rss -repo Homebrew/homebrew-cask -state merged -label 'new cask' -limit 100 > /var/www/rss/homebrew-cask.rss 2>> /var/log/github-pr-rss.log
+0 * * * * cd /path/to/github-pr-rss && ./github-pr-rss -repo Homebrew/homebrew-cask -state merged -label 'new cask' -limit 100 -out /var/www/rss/homebrew-cask.rss 2>> /var/log/github-pr-rss.log
 ```
 
 ## How it works

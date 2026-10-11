@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -51,6 +53,54 @@ func TestRunEndToEnd(t *testing.T) {
 	if !strings.Contains(s, "<title>PR #42: Add foo 1.2.3</title>") {
 		t.Errorf("output missing PR item:\n%s", s)
 	}
+}
+
+func TestRunOutFlag(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/search/issues" {
+			t.Errorf("request path = %q, want /search/issues", r.URL.Path)
+		}
+		json.NewEncoder(w).Encode(sampleResult())
+	}))
+	defer srv.Close()
+
+	baseArgs := []string{
+		"-api", srv.URL,
+		"-repo", "Homebrew/homebrew-cask",
+		"-state", "merged",
+		"-label", "new cask",
+	}
+
+	t.Run("writes to file and leaves stdout empty", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "feed.rss")
+		var out bytes.Buffer
+		if err := run(append(baseArgs, "-out", path), &out, io.Discard, func(string) string { return "" }); err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		if out.Len() != 0 {
+			t.Errorf("stdout = %q, want empty", out.String())
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("ReadFile: %v", err)
+		}
+		if !strings.Contains(string(data), "<rss version=\"2.0\"") {
+			t.Errorf("output file is not an RSS 2.0 document:\n%s", data)
+		}
+		if !strings.Contains(string(data), "<title>PR #42: Add foo 1.2.3</title>") {
+			t.Errorf("output file missing PR item:\n%s", data)
+		}
+	})
+
+	t.Run("dash writes to stdout", func(t *testing.T) {
+		var out bytes.Buffer
+		if err := run(append(baseArgs, "-out", "-"), &out, io.Discard, func(string) string { return "" }); err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		if !strings.Contains(out.String(), "<rss version=\"2.0\"") {
+			t.Errorf("stdout is not an RSS 2.0 document:\n%s", out.String())
+		}
+	})
 }
 
 func TestRunFlagErrors(t *testing.T) {
