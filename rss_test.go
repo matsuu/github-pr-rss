@@ -77,6 +77,22 @@ func TestBuildFeedAndMarshal(t *testing.T) {
 	}
 }
 
+func TestChannelPubDateIsNewestItem(t *testing.T) {
+	spec, err := newFeedSpec(options{repo: "a/b"})
+	if err != nil {
+		t.Fatalf("newFeedSpec: %v", err)
+	}
+	older := ghIssue{Number: 1, HTMLURL: "https://github.com/a/b/pull/1",
+		CreatedAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)}
+	newest := ghIssue{Number: 2, HTMLURL: "https://github.com/a/b/pull/2",
+		CreatedAt: time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)}
+	// ascending order: the newest item comes last
+	feed := buildFeed(spec, ghSearchResult{Items: []ghIssue{older, newest}}, time.Now(), 0)
+	if want := newest.CreatedAt.Format(time.RFC1123Z); feed.Channel.PubDate != want {
+		t.Errorf("channel PubDate = %q, want newest item date %q", feed.Channel.PubDate, want)
+	}
+}
+
 func TestMarshalFeedPretty(t *testing.T) {
 	spec, err := newFeedSpec(options{repo: "Homebrew/homebrew-cask"})
 	if err != nil {

@@ -40,7 +40,8 @@ type rssItem struct {
 
 // buildFeed assembles the RSS feed for the given pull requests. Each
 // item is dated by its merge time when the PR was merged, and by its
-// creation time otherwise.
+// creation time otherwise. The channel pubDate is the newest item date,
+// which is not necessarily the first item when sorting ascending.
 func buildFeed(spec feedSpec, res ghSearchResult, now time.Time, maxDesc int) *rssFeed {
 	title := spec.Owner + "/" + spec.Repo + " pull requests"
 	if q := spec.pageQuery(); q != "" {
@@ -54,20 +55,20 @@ func buildFeed(spec feedSpec, res ghSearchResult, now time.Time, maxDesc int) *r
 		LastBuildDate: now.UTC().Format(time.RFC1123Z),
 		Generator:     progName + " " + version,
 	}
+	var latest time.Time
 	for _, is := range res.Items {
+		if d := itemDate(is); d.After(latest) {
+			latest = d
+		}
 		ch.Items = append(ch.Items, newRSSItem(is, maxDesc))
 	}
-	if len(ch.Items) > 0 {
-		ch.PubDate = ch.Items[0].PubDate
+	if !latest.IsZero() {
+		ch.PubDate = latest.UTC().Format(time.RFC1123Z)
 	}
 	return &rssFeed{Version: "2.0", DC: dcNamespace, Channel: ch}
 }
 
 func newRSSItem(is ghIssue, maxDesc int) rssItem {
-	date := is.CreatedAt
-	if is.PullRequest != nil && is.PullRequest.MergedAt != nil {
-		date = *is.PullRequest.MergedAt
-	}
 	var categories []string
 	for _, l := range is.Labels {
 		categories = append(categories, l.Name)
@@ -79,8 +80,17 @@ func newRSSItem(is ghIssue, maxDesc int) rssItem {
 		Creator:     is.User.Login,
 		Categories:  categories,
 		GUID:        is.HTMLURL,
-		PubDate:     date.UTC().Format(time.RFC1123Z),
+		PubDate:     itemDate(is).UTC().Format(time.RFC1123Z),
 	}
+}
+
+// itemDate returns the date an item is published under: the merge time
+// when the pull request was merged, and the creation time otherwise.
+func itemDate(is ghIssue) time.Time {
+	if is.PullRequest != nil && is.PullRequest.MergedAt != nil {
+		return *is.PullRequest.MergedAt
+	}
+	return is.CreatedAt
 }
 
 // truncate shortens s to at most n runes, marking the cut.
