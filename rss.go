@@ -117,7 +117,7 @@ func marshalFeed(f *rssFeed, pretty bool) ([]byte, error) {
 	out := make([]byte, 0, len(xml.Header)+buf.Len()+1)
 	out = append(out, xml.Header...)
 	out = append(out, buf.Bytes()...)
-	if len(out) == 0 || out[len(out)-1] != '\n' {
+	if out[len(out)-1] != '\n' {
 		out = append(out, '\n')
 	}
 	return out, nil
