@@ -174,6 +174,22 @@ func parseFlags(args []string, out, errOut io.Writer) (options, error) {
 	if fs.NArg() > 0 {
 		return opts, fmt.Errorf("unexpected argument %q: pass the repository with -repo and filters as flags", fs.Arg(0))
 	}
+	switch opts.sort {
+	case "created", "updated", "comments":
+	default:
+		return opts, fmt.Errorf("invalid -sort %q: want created, updated, or comments", opts.sort)
+	}
+	switch opts.order {
+	case "desc", "asc":
+	default:
+		return opts, fmt.Errorf("invalid -order %q: want desc or asc", opts.order)
+	}
+	if opts.limit < 0 {
+		return opts, fmt.Errorf("invalid -limit %d: want 0 or more", opts.limit)
+	}
+	if opts.maxDesc < 0 {
+		return opts, fmt.Errorf("invalid -max-desc %d: want 0 or more", opts.maxDesc)
+	}
 	return opts, nil
 }
 

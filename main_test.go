@@ -154,6 +154,10 @@ func TestRunFlagErrors(t *testing.T) {
 		{name: "missing repo", args: nil, wantErr: "-repo"},
 		{name: "bad repo", args: []string{"-repo", "Homebrew"}, wantErr: "-repo"},
 		{name: "invalid state", args: []string{"-repo", "a/b", "-state", "bogus"}, wantErr: "-state"},
+		{name: "invalid sort", args: []string{"-repo", "a/b", "-sort", "bogus"}, wantErr: "-sort"},
+		{name: "invalid order", args: []string{"-repo", "a/b", "-order", "bogus"}, wantErr: "-order"},
+		{name: "negative limit", args: []string{"-repo", "a/b", "-limit", "-1"}, wantErr: "-limit"},
+		{name: "negative max-desc", args: []string{"-repo", "a/b", "-max-desc", "-1"}, wantErr: "-max-desc"},
 		{
 			name:    "positional URL no longer accepted",
 			args:    []string{"-repo", "a/b", "https://github.com/Homebrew/homebrew-cask/pulls?q=is%3Apr"},
