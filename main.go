@@ -31,6 +31,11 @@ const (
 // and the program should exit successfully.
 var errUsagePrinted = errors.New("usage already printed")
 
+// errFlagError signals that the flag package already reported a parsing
+// error (message and usage) to the error output; the program should exit
+// with a usage-failure status without printing the error again.
+var errFlagError = errors.New("flag error already reported")
+
 // options holds all command-line flags.
 type options struct {
 	repo       string
@@ -65,6 +70,9 @@ func (l *stringList) Set(v string) error {
 
 func main() {
 	if err := run(os.Args[1:], os.Stdout, os.Stderr, os.Getenv); err != nil {
+		if errors.Is(err, errFlagError) {
+			os.Exit(2)
+		}
 		fmt.Fprintln(os.Stderr, progName+":", err)
 		os.Exit(1)
 	}
@@ -153,7 +161,11 @@ func parseFlags(args []string, out, errOut io.Writer) (options, error) {
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
-		return opts, err // -h already printed usage
+		if errors.Is(err, flag.ErrHelp) {
+			return opts, errUsagePrinted // -h: usage already printed
+		}
+		// The flag package already printed the error and the usage text.
+		return opts, errFlagError
 	}
 	if *showVersion {
 		fmt.Fprintln(out, progName+" "+version)

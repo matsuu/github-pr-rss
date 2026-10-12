@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -101,6 +102,47 @@ func TestRunOutFlag(t *testing.T) {
 			t.Errorf("stdout is not an RSS 2.0 document:\n%s", out.String())
 		}
 	})
+}
+
+func TestRunHelp(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if err := run([]string{"-h"}, &out, &errOut, func(string) string { return "" }); err != nil {
+		t.Fatalf("run(-h): %v", err)
+	}
+	if out.Len() != 0 {
+		t.Errorf("stdout = %q, want empty", out.String())
+	}
+	if !strings.Contains(errOut.String(), "Usage:") {
+		t.Errorf("stderr does not contain usage:\n%s", errOut.String())
+	}
+}
+
+func TestRunVersion(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if err := run([]string{"-version"}, &out, &errOut, func(string) string { return "" }); err != nil {
+		t.Fatalf("run(-version): %v", err)
+	}
+	if got, want := strings.TrimSpace(out.String()), progName+" "+version; got != want {
+		t.Errorf("stdout = %q, want %q", got, want)
+	}
+	if errOut.Len() != 0 {
+		t.Errorf("stderr = %q, want empty", errOut.String())
+	}
+}
+
+func TestRunUnknownFlag(t *testing.T) {
+	var out, errOut bytes.Buffer
+	err := run([]string{"-bogus"}, &out, &errOut, func(string) string { return "" })
+	if !errors.Is(err, errFlagError) {
+		t.Fatalf("run(-bogus) error = %v, want errFlagError", err)
+	}
+	s := errOut.String()
+	if !strings.Contains(s, "Usage:") {
+		t.Errorf("stderr does not contain usage:\n%s", s)
+	}
+	if c := strings.Count(s, "flag provided but not defined: -bogus"); c != 1 {
+		t.Errorf("flag error printed %d times, want exactly once:\n%s", c, s)
+	}
 }
 
 func TestRunFlagErrors(t *testing.T) {
