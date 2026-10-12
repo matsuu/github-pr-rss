@@ -116,7 +116,7 @@ func run(args []string, out, errOut io.Writer, getenv func(string) string) error
 		fmt.Fprintln(errOut, "warning: GitHub reports these search results may be incomplete; try again later")
 	}
 	if res.TotalCount > len(res.Items) {
-		fmt.Fprintf(errOut, "note: %d pull requests match this query; the feed contains the newest %d (GitHub's search API returns at most 1000)\n",
+		fmt.Fprintf(errOut, "note: %d pull requests match this query; the feed contains the first %d (GitHub's search API returns at most 1000)\n",
 			res.TotalCount, len(res.Items))
 	}
 	if len(res.Items) == 0 {
