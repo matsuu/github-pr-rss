@@ -15,6 +15,12 @@ import (
 
 const ghAPIVersion = "2022-11-28"
 
+// maxResponseBytes caps the size of an API response body. A page of 100
+// pull requests whose bodies all hit GitHub's 65536-character limit
+// needs well over 32 MB once multi-byte characters and JSON escaping
+// are counted, so the limit must leave headroom above that.
+const maxResponseBytes = 64 << 20
+
 // ghUser is the pull request author.
 type ghUser struct {
 	Login string `json:"login"`
@@ -130,9 +136,12 @@ func (c *ghClient) getJSON(ctx context.Context, u string, v any) error {
 		return err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes+1))
 	if err != nil {
 		return fmt.Errorf("reading response from %s: %w", u, err)
+	}
+	if len(body) > maxResponseBytes {
+		return fmt.Errorf("response from %s exceeds %d MB", u, maxResponseBytes>>20)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return apiError(resp, body, c.Token != "")
