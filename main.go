@@ -71,7 +71,7 @@ func main() {
 }
 
 func run(args []string, out, errOut io.Writer, getenv func(string) string) error {
-	opts, err := parseFlags(args)
+	opts, err := parseFlags(args, out, errOut)
 	if err != nil {
 		if errors.Is(err, errUsagePrinted) {
 			return nil
@@ -127,8 +127,9 @@ func run(args []string, out, errOut io.Writer, getenv func(string) string) error
 	return writeFileAtomically(opts.out, data)
 }
 
-func parseFlags(args []string) (options, error) {
+func parseFlags(args []string, out, errOut io.Writer) (options, error) {
 	fs := flag.NewFlagSet(progName, flag.ContinueOnError)
+	fs.SetOutput(errOut)
 	var opts options
 	fs.StringVar(&opts.repo, "repo", "", "GitHub repository in `<owner>/<name>` format (required)")
 	fs.StringVar(&opts.host, "host", defaultHost, "GitHub `host` ("+defaultHost+" or a GitHub Enterprise host)")
@@ -155,7 +156,7 @@ func parseFlags(args []string) (options, error) {
 		return opts, err // -h already printed usage
 	}
 	if *showVersion {
-		fmt.Fprintln(fs.Output(), progName+" "+version)
+		fmt.Fprintln(out, progName+" "+version)
 		return opts, errUsagePrinted
 	}
 	if fs.NArg() > 0 {
