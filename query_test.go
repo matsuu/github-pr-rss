@@ -51,6 +51,8 @@ func TestNewFeedSpec(t *testing.T) {
 		{name: "repo with extra segment", opts: options{repo: "a/b/c"}, wantErr: "-repo"},
 		{name: "repo is a URL", opts: options{repo: "https://github.com/Homebrew/homebrew-cask/pulls"}, wantErr: "-repo"},
 		{name: "invalid state", opts: options{repo: "a/b", state: "bogus"}, wantErr: "-state"},
+		{name: "label with quote", opts: options{repo: "a/b", labels: stringList{`we"ird`}}, wantErr: "-label"},
+		{name: "milestone with quote", opts: options{repo: "a/b", milestone: `Go"1.27`}, wantErr: "-milestone"},
 	}
 
 	for _, tt := range tests {

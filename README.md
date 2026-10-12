@@ -91,6 +91,7 @@ GitHub Enterprise is supported: pass `-host ghe.example.com` and the tool uses `
 
 - The GitHub search API returns at most 1000 results per query (even with `-limit 0`)
 - `description` contains the raw Markdown source of the PR body
+- Labels and milestones containing double quotes cannot be searched (GitHub search syntax has no escaping) and are rejected
 
 ## Development
 

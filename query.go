@@ -47,15 +47,28 @@ func newFeedSpec(o options) (feedSpec, error) {
 	if host == "" {
 		host = defaultHost
 	}
+	// Labels and milestones are wrapped in double quotes in the search
+	// query, and GitHub's search syntax offers no escaping, so a value
+	// containing a quote would break (or inject into) the query.
+	labels := nonEmptyTrimmed(o.labels)
+	for _, l := range labels {
+		if strings.Contains(l, `"`) {
+			return feedSpec{}, fmt.Errorf("invalid -label %q: must not contain a double quote", l)
+		}
+	}
+	milestone := strings.TrimSpace(o.milestone)
+	if strings.Contains(milestone, `"`) {
+		return feedSpec{}, fmt.Errorf("invalid -milestone %q: must not contain a double quote", o.milestone)
+	}
 	return feedSpec{
 		Host:       host,
 		Owner:      owner,
 		Repo:       name,
 		State:      state,
-		Labels:     nonEmptyTrimmed(o.labels),
+		Labels:     labels,
 		Author:     cleanLogin(o.author),
 		Assignee:   cleanLogin(o.assignee),
-		Milestone:  strings.TrimSpace(o.milestone),
+		Milestone:  milestone,
 		Qualifiers: nonEmptyTrimmed(o.qualifiers),
 	}, nil
 }
